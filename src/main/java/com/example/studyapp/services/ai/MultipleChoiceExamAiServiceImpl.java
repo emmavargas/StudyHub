@@ -25,7 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.*;
 
-//@Primary
+@Primary
 @Service
 public class MultipleChoiceExamAiServiceImpl implements MultipleChoiceService{
 
