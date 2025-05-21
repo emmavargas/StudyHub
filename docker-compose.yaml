@@ -1,0 +1,16 @@
+services:
+  mysql:
+    image: mysql
+    restart: always
+    ports:
+      - 3308:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: db_study_app
+      MYSQL_USER: dev_user
+      MYSQL_PASSWORD: secret
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:

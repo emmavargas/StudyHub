@@ -23,7 +23,6 @@ import java.util.Arrays;
 @EnableWebSecurity
 public class SecurityConfig {
 
-
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
@@ -43,9 +42,23 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000/", "http://65.21.56.202:3000"));
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://localhost:3000",
+                "http://127.0.0.1:3000/",
+                "https://studyhub.emmanueldev.com.ar",
+                "https://sandbox.mercadopago.com.ar"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Set-Cookie"));
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "Set-Cookie",
+                "x-signature",
+                "x-request-id",
+                "x-topic",
+                "x-user-id",
+                "x-api-version"
+        ));
         configuration.setAllowCredentials(true);
         configuration.setExposedHeaders(Arrays.asList("Set-Cookie"));
 
@@ -58,7 +71,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http, CorsConfigurationSource corsConfigurationSource) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .logout(logout -> logout
-                        .logoutUrl("/logout")
+                        .logoutUrl("/api/logout")
                         .logoutSuccessHandler((request, response, authentication) -> {
                             response.setStatus(200);
                             response.setContentType("application/json");
@@ -67,14 +80,11 @@ public class SecurityConfig {
                         .deleteCookies("jwt")
                         .invalidateHttpSession(true)
                         .clearAuthentication(true))
-                .cors(cors -> {
-                    cors.configurationSource(corsConfigurationSource);
-                })
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/logout").permitAll()
-                        .requestMatchers("/user/**").authenticated()
-                        .requestMatchers("/register").hasRole("ADMIN")
+                        .requestMatchers("/api/login", "/api/logout", "/api/webhook/**","/api/register").permitAll()
+                        .requestMatchers("/api/user/**").authenticated()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/actuator/**").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

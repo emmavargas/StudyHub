@@ -32,6 +32,9 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    @Column(name= "is_premium",nullable = false)
+    private boolean isPremium = false;
+
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Profile profile;
 
