@@ -2,6 +2,8 @@ package com.example.studyapp.controllers;
 
 import com.example.studyapp.dtos.UserRegisterDto;
 import com.example.studyapp.dtos.UserLoginDto;
+import com.example.studyapp.dtos.UserUpdatePasswordDto;
+import com.example.studyapp.exceptions.PasswordUpdateException;
 import com.example.studyapp.security.JpaUserDetailsService;
 import com.example.studyapp.security.JwtUtils;
 import com.example.studyapp.services.UserService;
@@ -18,10 +20,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -93,6 +92,29 @@ public class UserController {
         }catch (Exception e) {
             System.out.println("Error inesperado: " + e.getMessage());
             throw e;
+        }
+    }
+
+
+    @PutMapping("/update-password")
+    public ResponseEntity<?> updateUserPassword(@Valid @RequestBody UserUpdatePasswordDto userUpdatePasswordDto, BindingResult result) {
+        if(result.hasErrors()) {
+            return infoValidation(result);
+        }
+        try {
+            userService.updatePassword(userUpdatePasswordDto);
+            Map<String,String> dataSuccess = new HashMap<>();
+            dataSuccess.put("message","Login exitoso");
+            dataSuccess.put("code_error","LOGIN_SUCCESS");
+            return ResponseEntity.ok(dataSuccess);
+        }catch (PasswordUpdateException e) {
+            Map<String,String> dataError = new HashMap<>();
+            dataError.put("message",e.getMessage());
+            dataError.put("code_error",e.getErrorCode());
+            return ResponseEntity.badRequest().body(dataError);
+        }catch (Exception e) {
+            System.out.println("Error inesperado: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
 
