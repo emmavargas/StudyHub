@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +35,12 @@ public class User {
 
     @Column(name= "is_premium",nullable = false)
     private boolean isPremium = false;
+
+    @Column(name= "recovery_number")
+    private String recoveryNumber;
+
+    @Column(name= "expiration_recovery_number")
+    private LocalDateTime expirationRecoveryNumber;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Profile profile;

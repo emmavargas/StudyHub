@@ -60,7 +60,6 @@ public class UserService {
 
         User user = userRepository.findByUsername(getUsernameContextSecurity()).orElseThrow();
 
-        passwordEncoder.matches(userUpdatePasswordDto.getPassword(), user.getPassword());
         if (!passwordEncoder.matches(userUpdatePasswordDto.getPassword(), user.getPassword())) {
             throw new PasswordUpdateException("La contraseña actual es incorrecta","CURRENT_PASSWORD_INVALID");
         }
@@ -72,6 +71,11 @@ public class UserService {
         }
         user.setPassword(passwordEncoder.encode(userUpdatePasswordDto.getNewPassword()));
         return userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public User getUserEmail() {
+        return userRepository.findByUsername(getUsernameContextSecurity()).orElseThrow();
     }
 
 
