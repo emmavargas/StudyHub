@@ -1,11 +1,11 @@
 package com.example.studyapp.services;
 
-import com.example.studyapp.dtos.UserRegisterDto;
-import com.example.studyapp.dtos.UserUpdatePasswordDto;
+import com.example.studyapp.dtos.*;
 import com.example.studyapp.entities.Profile;
 import com.example.studyapp.entities.User;
 import com.example.studyapp.enums.Role;
 import com.example.studyapp.exceptions.PasswordUpdateException;
+import com.example.studyapp.repositories.ProfileRepository;
 import com.example.studyapp.repositories.UserRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,12 +19,14 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
-
     private final PasswordEncoder passwordEncoder;
+    private final ProfileRepository profileRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, ProfileRepository profileRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.profileRepository = profileRepository;
     }
 
     @Transactional
@@ -48,6 +50,7 @@ public class UserService {
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
     }
+
 
     @Transactional(readOnly = true)
     public Optional<User> getUserId(Long userId) { return userRepository.findById(userId); }
@@ -79,6 +82,69 @@ public class UserService {
     }
 
 
+
+
+    @Transactional
+    public User updateEmailUsername(UserUpdateEmailUsername dto) {
+        User user = userRepository.findByUsername(getUsernameContextSecurity()).orElseThrow();
+
+        // Validar si el nuevo username ya existe en otro usuario
+        userRepository.findByUsername(dto.getUsername())
+                .filter(existingUser -> !existingUser.getId().equals(user.getId()))
+                .ifPresent(existingUser -> {
+                    throw new IllegalArgumentException("El nombre de usuario ya está en uso");
+                });
+
+        // Validar si el nuevo email ya existe en otro usuario
+        userRepository.findByEmail(dto.getEmail())
+                .filter(existingUser -> !existingUser.getId().equals(user.getId()))
+                .ifPresent(existingUser -> {
+                    throw new IllegalArgumentException("El correo electrónico ya está en uso");
+                });
+
+        user.setUsername(dto.getUsername());
+        user.setEmail(dto.getEmail());
+
+        return userRepository.save(user);
+    }
+
+
+    @Transactional(readOnly = true)
+    public UserUpdateConflictDto checkCredentialConflictsEmailUsername(UserUpdateEmailUsername dto) {
+        User currentUser = userRepository.findByUsername(getUsernameContextSecurity()).orElseThrow();
+
+        boolean usernameExists = userRepository.findByUsername(dto.getUsername())
+                .filter(user -> !user.getId().equals(currentUser.getId()))
+                .isPresent();
+
+        boolean emailExists = userRepository.findByEmail(dto.getEmail())
+                .filter(user -> !user.getId().equals(currentUser.getId()))
+                .isPresent();
+
+        return new UserUpdateConflictDto(emailExists, usernameExists);
+    }
+
+
+    @Transactional
+    public User updateNameLastname(UserUpdateNameLastname dto) {
+        User currentUser = userRepository.findByUsername(getUsernameContextSecurity()).orElseThrow();
+
+        Profile profile = currentUser.getProfile();
+        profile.setName(dto.getName());
+        profile.setLastname(dto.getLastname());
+        currentUser.setProfile(profile);
+        return userRepository.save(currentUser);
+    }
+
+
+    @Transactional(readOnly = true)
+    public dataUserDto getDataUser() {
+        User user = userRepository.findByUsername(getUsernameContextSecurity())
+                .orElseThrow(() -> new IllegalStateException("Usuario no autenticado"));
+
+        Profile profile = user.getProfile();
+        return new dataUserDto(user.getEmail(), user.getUsername(), profile.getName(), profile.getLastname());
+    }
 
 
     private String getUsernameContextSecurity() {

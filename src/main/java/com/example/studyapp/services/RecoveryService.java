@@ -49,7 +49,7 @@ public class RecoveryService {
         message.setFrom("studyhubsistemanotificador@gmail.com");
         message.setTo(email);
         message.setSubject("Código de recuperación de cuenta");
-        message.setText("Hola,\n\nTu código de recuperación es: " + code + "\n\n" +
+        message.setText("Hola Usuario:" + user.get().getUsername() + "\n\n"+"Tu código de recuperación es: " + code + "\n\n" +
                 "Este código expira en 15 minutos.");
         mailSender.send(message);
         System.out.println("Código enviado a: " + email);

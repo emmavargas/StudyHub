@@ -4,21 +4,19 @@ package com.example.studyapp.services;
 import com.example.studyapp.dtos.CourseDto;
 import com.example.studyapp.dtos.TopicDto;
 import com.example.studyapp.entities.Course;
+import com.example.studyapp.entities.FileAttachment;
 import com.example.studyapp.entities.Topic;
 import com.example.studyapp.entities.User;
 import com.example.studyapp.repositories.CourseRepository;
+import com.example.studyapp.repositories.FileAttachmentRepository;
 import com.example.studyapp.repositories.TopicRepository;
 import com.example.studyapp.repositories.UserRepository;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.BindingResult;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class CourseService {
@@ -26,16 +24,20 @@ public class CourseService {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final TopicRepository topicRepository;
+    private final FileAttachmentRepository fileAttachmentRepository;
 
-    public CourseService(UserRepository userRepository, CourseRepository courseRepository, TopicRepository topicRepository) {
+
+    public CourseService(UserRepository userRepository, CourseRepository courseRepository, TopicRepository topicRepository, FileAttachmentRepository fileAttachmentRepository) {
         this.userRepository = userRepository;
         this.courseRepository = courseRepository;
         this.topicRepository = topicRepository;
+        this.fileAttachmentRepository = fileAttachmentRepository;
     }
 
     @Transactional(readOnly = true)
     public List<Course> showCourses() {
         User user = userRepository.findByUsername(getUsernameContextSecurity()).orElseThrow();
+        System.out.println("Zona horaria del sistema: " + java.time.ZoneId.systemDefault());
         return user.getCourses();
     }
 
@@ -89,12 +91,24 @@ public class CourseService {
         if(!user.getCourses().contains(course)){
             throw new IllegalArgumentException("Course not found");
         }
+
+        List<Long> topicIds = course.getTopics().stream()
+                .map(Topic::getId)
+                .toList();
+
+        if (!topicIds.isEmpty()) {
+            // 2. Marcar archivos como pendientes de borrado
+            fileAttachmentRepository.markAsPendingDeletionByTopicIds(topicIds);
+
+            // 3. Desvincular los archivos (topic_id = null)
+            fileAttachmentRepository.unlinkByTopicIds(topicIds);
+        }
         user.getCourses().remove(course);
-        courseRepository.delete(course);
+        userRepository.save(user);
     }
 
     @Transactional
-    public Topic saveTopic(Long idCourse, TopicDto topicDto) {
+    public Topic saveTopic(Long idCourse, TopicDto topicDto, List<FileAttachment> attachments) {
 
         User user = userRepository.findByUsername(getUsernameContextSecurity()).orElseThrow();
         Course course = courseRepository.findById(idCourse).orElseThrow(
@@ -103,18 +117,17 @@ public class CourseService {
         if(!user.getCourses().contains(course)){
             throw new IllegalArgumentException("Course not found");
         }
-
         Topic topic = new Topic();
         topic.setTitle(topicDto.getTitle());
         topic.setDescription(topicDto.getDescription());
-        topic.setBibliography(topicDto.getBibliography());
+        topic.setFileAttachments(attachments);
         course.getTopics().add(topic);
         course = courseRepository.save(course);
         return course.getTopics().get(course.getTopics().size() - 1);
     }
 
     @Transactional
-    public Topic updateTopic(Long idCourse, TopicDto topicDto, Long idTopic) {
+    public Topic updateTopic(Long idCourse, TopicDto topicDto, Long idTopic, List<FileAttachment> attachments) {
 
         User user = userRepository.findByUsername(getUsernameContextSecurity()).orElseThrow();
         Course course = courseRepository.findById(idCourse).orElseThrow(
@@ -128,10 +141,12 @@ public class CourseService {
         );
         topic.setTitle(topicDto.getTitle());
         topic.setDescription(topicDto.getDescription());
-        topic.setBibliography(topicDto.getBibliography());
+        topic.addFileAttachments(attachments);
         topic = topicRepository.save(topic);
         return topic;
     }
+
+    //TENEMOS QUIE VERIFICAR COMO ELIMINAR
 
     @Transactional
     public void deleteTopic(Long idCourse, Long idTopic) {
@@ -145,8 +160,43 @@ public class CourseService {
         Topic topic = topicRepository.findById(idTopic).orElseThrow(
                 () -> new IllegalArgumentException("Topic not found")
         );
+
+        fileAttachmentRepository.markAsPendingDeletionByTopicIds(List.of(idTopic));
+        fileAttachmentRepository.unlinkByTopicIds(List.of(idTopic));
+
+
+// Remover el topic de la lista de topics del curso
         course.getTopics().remove(topic);
+        courseRepository.save(course);
+        userRepository.save(user);
     }
+
+
+    @Transactional
+    public void deleteFileTopic(Long idCourse, Long idTopic, Long idFile) {
+        User user = userRepository.findByUsername(getUsernameContextSecurity()).orElseThrow();
+        Course course = courseRepository.findById(idCourse).orElseThrow(
+                () -> new IllegalArgumentException("Course not found")
+        );
+
+        if (!user.getCourses().contains(course)) {
+            throw new IllegalArgumentException("Course not found");
+        }
+
+        Topic topic = topicRepository.findById(idTopic).orElseThrow(
+                () -> new IllegalArgumentException("Topic not found")
+        );
+
+        FileAttachment fileToRemove = topic.getFileAttachments().stream()
+                .filter(file -> file.getId().equals(idFile))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("File not found"));
+
+        // 1. Marcar y desvincular antes de remover
+        fileAttachmentRepository.markAsPendingDeletionById(idFile);
+        fileAttachmentRepository.unlinkById(idFile);
+    }
+
 
     @Transactional(readOnly = true)
     public List<Topic> showTopics(Long idCourse) {
@@ -203,6 +253,8 @@ public class CourseService {
         );
         return user.getId();
     }
+
+
 }
 
 

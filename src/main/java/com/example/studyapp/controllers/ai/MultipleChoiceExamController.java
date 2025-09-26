@@ -34,7 +34,6 @@ public class MultipleChoiceExamController {
     }
 
     @PostMapping("/{id}/generar-examen")
-
     public ResponseEntity<?> generation(@RequestBody CourseExamDto courseExamDto, @PathVariable Long id) throws JsonProcessingException {
         Long userId = courseService.getUserId();
         User user = userService.getUserId(userId).get();
@@ -63,7 +62,7 @@ public class MultipleChoiceExamController {
 
     private Bucket resolveBucketFree(Long userId) {
         return buckets.computeIfAbsent(userId, key -> {
-            Bandwidth limit = Bandwidth.classic(4, Refill.intervally(4, Duration.ofMinutes(30)));
+            Bandwidth limit = Bandwidth.classic(4, Refill.intervally(4, Duration.ofMinutes(60)));
             return Bucket.builder().addLimit(limit).build();
         });
     }
