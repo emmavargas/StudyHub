@@ -30,9 +30,9 @@ public class CourseController {
 
     private final CourseService courseService;
     private final FileAttachmentRepository fileAttachmentRepository;
-    private static final String UPLOAD_DIRECTORY = "/home/emma/data_study_hub/";
+    //private static final String UPLOAD_DIRECTORY = "/home/emma/data_study_hub/";
 
-    //private static final String UPLOAD_DIRECTORY = "/home/emma/data_study_hub";
+    private static final String UPLOAD_DIRECTORY = "/home/emma/data_study_hub";
 
 
     public CourseController(CourseService courseService, FileAttachmentRepository fileAttachmentRepository) {
@@ -86,83 +86,56 @@ public class CourseController {
     public ResponseEntity<?> addTopic(@PathVariable Long idCourse,
                                       @RequestPart("title") String title,
                                       @RequestPart("description") String description,
-                                      @RequestPart("files") List<MultipartFile> files) {
-        try{
-
-            List<FileAttachment> attachments = files.stream().map(file -> {
-                // Generar un nombre único con UUID para evitar duplicados
+                                      @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+        try {
+            List<FileAttachment> attachments = (files != null && !files.isEmpty()) ? files.stream().map(file -> {
                 String originalFileName = file.getOriginalFilename();
                 String uniqueFileName = UUID.randomUUID().toString() + "_" + originalFileName;
                 Path filePath = Paths.get(UPLOAD_DIRECTORY + uniqueFileName);
-
-                // Guardar el archivo en la VPS
-                try {
-                    Files.createDirectories(filePath.getParent());
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                try {
-                    Files.write(filePath, file.getBytes());
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-
-                // Crear entidad de archivo con la ruta
+                try { Files.createDirectories(filePath.getParent()); } catch (IOException e) { throw new RuntimeException(e); }
+                try { Files.write(filePath, file.getBytes()); } catch (IOException e) { throw new RuntimeException(e); }
                 FileAttachment attachment = new FileAttachment();
                 attachment.setFileName(originalFileName);
                 attachment.setFilePath(filePath.toString());
                 attachment.setContentType(file.getContentType());
                 return attachment;
-            }).toList();
+            }).toList() : List.of();
 
-            TopicDto topicDto = new TopicDto(title,description);
-            Topic topic = courseService.saveTopic(idCourse,topicDto, attachments);
+            TopicDto topicDto = new TopicDto(title, description);
+            Topic topic = courseService.saveTopic(idCourse, topicDto, attachments);
             return ResponseEntity.ok(topic);
-        }catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
     @PutMapping("/courses/{idCourse}/topics/{idTopic}")
-    public ResponseEntity<?> updateTopic(@PathVariable Long idTopic,@PathVariable Long idCourse,
+    public ResponseEntity<?> updateTopic(@PathVariable Long idTopic, @PathVariable Long idCourse,
                                          @RequestPart("title") String title,
                                          @RequestPart("description") String description,
-                                         @RequestPart("files") List<MultipartFile> files) {
-        try{
-
-            List<FileAttachment> attachments = files.stream().map(file -> {
-                // Generar un nombre único con UUID para evitar duplicados
+                                         @RequestPart(value = "files", required = false) List<MultipartFile> files) {
+        try {
+            List<FileAttachment> attachments = (files != null && !files.isEmpty()) ? files.stream().map(file -> {
                 String originalFileName = file.getOriginalFilename();
                 String uniqueFileName = UUID.randomUUID().toString() + "_" + originalFileName;
                 Path filePath = Paths.get(UPLOAD_DIRECTORY + uniqueFileName);
-
-                // Guardar el archivo en la VPS
-                try {
-                    Files.createDirectories(filePath.getParent());
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                try {
-                    Files.write(filePath, file.getBytes());
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-
-                // Crear entidad de archivo con la ruta
+                try { Files.createDirectories(filePath.getParent()); } catch (IOException e) { throw new RuntimeException(e); }
+                try { Files.write(filePath, file.getBytes()); } catch (IOException e) { throw new RuntimeException(e); }
                 FileAttachment attachment = new FileAttachment();
                 attachment.setFileName(originalFileName);
                 attachment.setFilePath(filePath.toString());
                 attachment.setContentType(file.getContentType());
                 return attachment;
-            }).toList();
+            }).toList() : List.of();
 
-            TopicDto topicDto = new TopicDto(title,description);
-            Topic topic = courseService.updateTopic(idCourse,topicDto,idTopic, attachments);
+            TopicDto topicDto = new TopicDto(title, description);
+            Topic topic = courseService.updateTopic(idCourse, topicDto, idTopic, attachments);
             return ResponseEntity.ok(topic);
-        }catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
 
     @DeleteMapping("/courses/{idCourse}/topics/{idTopic}")
     public ResponseEntity<?> deleteTopic(@PathVariable Long idTopic,@PathVariable Long idCourse) {

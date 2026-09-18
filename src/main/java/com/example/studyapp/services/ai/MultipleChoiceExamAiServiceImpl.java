@@ -68,14 +68,14 @@ public class MultipleChoiceExamAiServiceImpl implements MultipleChoiceService {
             ExecutorService executor = Executors.newSingleThreadExecutor();
             Future<String> future = executor.submit(() -> {
                 GenerateContentResponse response = client.models.generateContent(
-                        "gemini-2.0-flash-lite",
+                        "gemini-3.8-flash",
                         fullPrompt,
                         null);
                 return response.text();
             });
 
             try {
-                return future.get(10, TimeUnit.SECONDS);
+                return future.get(20, TimeUnit.SECONDS);
             } catch (Exception e) {
                 System.out.println("Error baja conexion a internet");
                 e.printStackTrace(); // Loguea el error en consola

@@ -62,7 +62,7 @@ public class MultipleChoiceExamController {
 
     private Bucket resolveBucketFree(Long userId) {
         return buckets.computeIfAbsent(userId, key -> {
-            Bandwidth limit = Bandwidth.classic(4, Refill.intervally(4, Duration.ofMinutes(60)));
+            Bandwidth limit = Bandwidth.classic(50, Refill.intervally(50, Duration.ofMinutes(60)));
             return Bucket.builder().addLimit(limit).build();
         });
     }
