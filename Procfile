@@ -1,0 +1,1 @@
+web: java -jar target/StudyApp-0.0.1-SNAPSHOT.jar
