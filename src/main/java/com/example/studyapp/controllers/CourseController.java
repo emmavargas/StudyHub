@@ -32,7 +32,8 @@ public class CourseController {
     private final FileAttachmentRepository fileAttachmentRepository;
     //private static final String UPLOAD_DIRECTORY = "/home/emma/data_study_hub/";
 
-    private static final String UPLOAD_DIRECTORY = "/home/emma/data_study_hub";
+    //private static final String UPLOAD_DIRECTORY = "/home/emma/data_study_hub";
+    private static final String UPLOAD_DIRECTORY = "uploads/";
 
 
     public CourseController(CourseService courseService, FileAttachmentRepository fileAttachmentRepository) {
